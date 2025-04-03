@@ -11,8 +11,21 @@ npx -y @weaverse/weaverse-mcp@latest
 ```
 
 
-## Usage
+## Usage - Local configuration
 
+
+- Clone this repository
+- Build the project
+
+```bash
+npm run build
+```
+
+- For macOS, run command to copy the current directory path
+
+```bash
+pwd | pbcopy
+```
 
 Add the following configuration. For more information, read the [Cursor MCP documentation](https://docs.cursor.com/context/model-context-protocol) or the [Claude Desktop MCP guide](https://modelcontextprotocol.io/quickstart/user).
 
