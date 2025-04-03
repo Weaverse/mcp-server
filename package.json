@@ -1,7 +1,7 @@
 {
-  "name": "weaverse-mcp-server",
+  "name": "@weaverse/mcp",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "build/index.js",
   "type": "module",
   "bin": {
     "weaverse-mcp-server": "./build/index.js"
@@ -12,10 +12,14 @@
   "files": [
     "build"
   ],
-  "keywords": [],
+  "keywords": [
+    "weaverse",
+    "mcp",
+    "weaverse-mcp-server"
+  ],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "A command line tool for setting up Weaverse MCP server",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.8.0",
     "zod": "^3.24.2"
