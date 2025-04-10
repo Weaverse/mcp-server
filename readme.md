@@ -35,7 +35,7 @@ This MCP server provides the following tools:
 
 | Tool Name               | Description                                    |
 | ----------------------- | ---------------------------------------------- |
-| search_docs             | Search Weaverse.io documentation               |
+| search_weaverse_docs    | Search Weaverse.io documentation               |
 
 
 ## License
