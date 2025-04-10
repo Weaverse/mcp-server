@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-const endpoint = "https://minhpt.weaverse.io/api/public/rag";
+const endpoint = 'https://weaverse.io/api/public/rag'
 
 async function* streamRagResponse(
 	response: Response,
