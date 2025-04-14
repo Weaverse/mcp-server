@@ -10,10 +10,10 @@ export async function queryRag(prompt: string) {
     );
     const res = await response.json();
     if (res.success) {
-      const {data, response} = res.result
+      const {data} = res.result
       return {
         success: true,
-        formattedText: `${response}\n\n${JSON.stringify(data)}`,
+        formattedText: JSON.stringify(data),
       };
     }
     return {
