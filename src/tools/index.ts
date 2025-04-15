@@ -1,6 +1,6 @@
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { z } from 'zod';
-const endpoint = 'https://weaverse.io/api/public/rag'
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
+const endpoint = "https://weaverse.io/api/public/rag";
 
 async function* streamRagResponse(
 	response: Response,
@@ -108,60 +108,60 @@ export async function queryRag(prompt: string, stream = false) {
 }
 
 export function weaverseTools(server: McpServer) {
-  server.tool(
-			"search_weaverse_docs",
-			`This tool will take in the user prompt, search docs and return relevant documentation that will help answer the user's question.`,
-			{
-				prompt: z
-					.string()
-					.describe("The search query for Weaverse documentation"),
-				stream: z
-					.boolean()
-					.optional()
-					.default(false)
-					.describe("Whether to stream the response"),
-			},
-			async ({ prompt, stream }) => {
-				const result = await queryRag(prompt, stream);
+	server.tool(
+		"search_weaverse_docs",
+		`This tool will take in the user prompt, search docs and return relevant documentation that will help answer the user's question.`,
+		{
+			prompt: z
+				.string()
+				.describe("The search query for Weaverse documentation"),
+			stream: z
+				.boolean()
+				.optional()
+				.default(false)
+				.describe("Whether to stream the response"),
+		},
+		async ({ prompt, stream }) => {
+			const result = await queryRag(prompt, stream);
 
-				if (stream && result.success && result.stream) {
-					// For streaming, accumulate chunks and return as a single string
-					let fullResponse = "";
-					try {
-						for await (const chunk of result.stream) {
-							fullResponse += chunk;
-						}
-					} catch (error) {
-						console.error("Error in stream processing:", error);
-						return {
-							content: [
-								{
-									type: "text",
-									text: "Error processing stream response",
-								},
-							],
-						};
+			if (stream && result.success && result.stream) {
+				// For streaming, accumulate chunks and return as a single string
+				let fullResponse = "";
+				try {
+					for await (const chunk of result.stream) {
+						fullResponse += chunk;
 					}
-
+				} catch (error) {
+					console.error("Error in stream processing:", error);
 					return {
 						content: [
 							{
 								type: "text",
-								text: fullResponse || "No results found",
+								text: "Error processing stream response",
 							},
 						],
 					};
 				}
 
-				// For non-streaming response
 				return {
 					content: [
 						{
 							type: "text",
-							text: result.formattedText || "No results found",
+							text: fullResponse || "No results found",
 						},
 					],
 				};
-			},
-		);
+			}
+
+			// For non-streaming response
+			return {
+				content: [
+					{
+						type: "text",
+						text: result.formattedText || "No results found",
+					},
+				],
+			};
+		},
+	);
 }
