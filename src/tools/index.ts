@@ -2,166 +2,107 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 const endpoint = "https://weaverse.io/api/public/rag";
 
-async function* streamRagResponse(
-	response: Response,
-): AsyncGenerator<string, void, unknown> {
-	const reader = response.body?.getReader();
-	if (!reader) {
-		throw new Error("No response body received");
-	}
 
-	console.log("🎯 Starting stream reading");
-	const decoder = new TextDecoder();
-	let partialLine = "";
+export async function queryRag(prompt: string) {
+  try {
+    // call weaverse api to search docs
+    const response = await fetch(
+      `${endpoint}?query=${encodeURIComponent(prompt)}`,
+    )
 
-	try {
-		while (true) {
-			const { done, value } = await reader.read();
-			if (done) {
-				console.log("🏁 Stream reading completed");
-				break;
-			}
+    const res = await response.json()
+    if (res.success) {
+      try {
+        const { data } = res.result
+        // Format the data to include source, title and content
+        const formattedResults = data.map((item: any) => {
+          try {
+            // Extract title from content if available
+            const titleMatch = item.content[0]?.text.match(/Title: (.*?)\n/)
+            const title = (titleMatch ? titleMatch[1] : item.filename) || ''
 
-			const chunk = decoder.decode(value);
-			partialLine += chunk;
+            // Extract URL if available
+            const urlMatch = item.content[0]?.text.match(/URL: (.*?)\n/)
+            const source =
+              (urlMatch ? urlMatch[1] : `File: ${item.filename}`) || ''
 
-			// Process complete lines
-			let newlineIndex: number = partialLine.indexOf("\n");
-			while (newlineIndex !== -1) {
-				const line = partialLine.slice(0, newlineIndex).trim();
-				partialLine = partialLine.slice(newlineIndex + 1);
+            // Combine all content pieces and ensure it's properly escaped
+            const content =
+              item.content
+                ?.map((c: any) =>
+                  (c?.text || '')
+                    .replace(/\u2028/g, '\\u2028')
+                    .replace(/\u2029/g, '\\u2029'),
+                )
+                .filter(Boolean)
+                .join('\n') || ''
 
-				if (line.startsWith("data: ")) {
-					try {
-						const jsonStr = line.slice(6).trim();
-						if (jsonStr === "[DONE]") {
-							console.log("🏁 Stream ended with [DONE] marker");
-							continue;
-						}
-						const data = JSON.parse(jsonStr);
-						if (data.response) {
-							console.log("📦 Received chunk:", {
-								responseLength: data.response.length,
-								nonce: data.nonce,
-							});
-							yield data.response;
-						}
-					} catch (e) {
-						console.error("❌ Error parsing SSE data:", e, "\nLine:", line);
-					}
-				}
-				newlineIndex = partialLine.indexOf("\n");
-			}
-		}
-	} catch (error) {
-		console.error("❌ Error in stream reading:", error);
-		throw error;
-	} finally {
-		console.log("🧹 Cleaning up stream reader");
-		reader.releaseLock();
-	}
-}
+            // Ensure all fields are strings or numbers to avoid JSON issues
+            return {
+              title: String(title),
+              source: String(source),
+              content: String(content),
+              score: Number(item.score) || 0,
+            }
+          } catch (itemError) {
+            // Return a fallback object for this item
+            return {
+              title: 'Unknown Title',
+              source: 'Unknown Source',
+              content: '',
+              score: 0,
+            }
+          }
+        })
 
-export async function queryRag(prompt: string, stream = false) {
-	console.log("🚀 Starting RAG query:", { prompt, stream });
-	try {
-		// call weaverse api to search docs
-		const response = await fetch(
-			`${endpoint}?query=${encodeURIComponent(prompt)}&stream=${stream}`,
-		);
+        // Ensure the array is not empty
+        if (!Array.isArray(formattedResults) || formattedResults.length === 0) {
+          return {
+            success: false,
+            formattedText: 'No results found',
+          }
+        }
 
-		console.log("📥 RAG response received:", {
-			status: response.status,
-			headers: Object.fromEntries(response.headers.entries()),
-			hasBody: !!response.body,
-		});
-
-		if (stream) {
-			if (!response.body) {
-				console.error("❌ No response body for streaming");
-				throw new Error("No response body received");
-			}
-			return {
-				success: true,
-				stream: streamRagResponse(response),
-			};
-		}
-
-		const res = await response.json();
-		if (res.success) {
-			const { data } = res.result;
-			return {
-				success: true,
-				formattedText: JSON.stringify(data),
-			};
-		}
-		return {
-			success: false,
-			formattedText: "No results found",
-		};
-	} catch (error) {
-		return {
-			success: false,
-			formattedText: "No results found",
-		};
-	}
+        return {
+          success: true,
+          formattedText: JSON.stringify(formattedResults, null, 2),
+        }
+      } catch (formatError) {
+        return {
+          success: false,
+          formattedText: 'Error formatting search results',
+        }
+      }
+    }
+    return {
+      success: false,
+      formattedText: 'No results found',
+    }
+  } catch (error) {
+    return {
+      success: false,
+      formattedText: 'No results found',
+    }
+  }
 }
 
 export function weaverseTools(server: McpServer) {
 	server.tool(
-		"search_weaverse_docs",
-		`This tool will take in the user prompt, search docs and return relevant documentation that will help answer the user's question.`,
-		{
-			prompt: z
-				.string()
-				.describe("The search query for Weaverse documentation"),
-			stream: z
-				.boolean()
-				.optional()
-				.default(false)
-				.describe("Whether to stream the response"),
-		},
-		async ({ prompt, stream }) => {
-			const result = await queryRag(prompt, stream);
-
-			if (stream && result.success && result.stream) {
-				// For streaming, accumulate chunks and return as a single string
-				let fullResponse = "";
-				try {
-					for await (const chunk of result.stream) {
-						fullResponse += chunk;
-					}
-				} catch (error) {
-					console.error("Error in stream processing:", error);
-					return {
-						content: [
-							{
-								type: "text",
-								text: "Error processing stream response",
-							},
-						],
-					};
-				}
-
-				return {
-					content: [
-						{
-							type: "text",
-							text: fullResponse || "No results found",
-						},
-					],
-				};
-			}
-
-			// For non-streaming response
-			return {
-				content: [
-					{
-						type: "text",
-						text: result.formattedText || "No results found",
-					},
-				],
-			};
-		},
-	);
+  'search_weaverse_docs',
+  `This tool will take in the user prompt, search docs and return relevant documentation that will help answer the user's question.`,
+  {
+    prompt: z.string().describe('The search query for Weaverse documentation'),
+  },
+  async ({ prompt }) => {
+    const result = await queryRag(prompt)
+    return {
+      content: [
+        {
+          type: 'text',
+          text: result.formattedText || 'No results found',
+        },
+      ],
+    }
+  },
+)
 }
