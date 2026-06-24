@@ -124,7 +124,7 @@ export function registerAccountTools(
         handle: z
           .string()
           .describe(
-            'Page handle (from list_pages). May contain "/" (e.g. pages/gift-shop). Use "" for singleton types like INDEX.'
+            'Page handle — use the exact value returned by list_pages (it round-trips). May be empty for singleton types like INDEX, or contain "/" for custom pages (e.g. pages/gift-shop).'
           ),
         format: z
           .enum(['weaverse', 'portable-text'])
