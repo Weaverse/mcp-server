@@ -13,7 +13,7 @@
   "scripts": {
     "build": "tsc && chmod 755 build/index.js",
     "test": "node --import tsx --test test/*.test.ts",
-    "smoke": "node build/index.js --smoke",
+    "smoke": "npm run build && node test.js",
     "prepublishOnly": "npm run build"
   },
   "files": [
