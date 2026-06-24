@@ -1,6 +1,6 @@
 {
   "name": "@weaverse/mcp",
-  "version": "2.1.4",
+  "version": "2.2.0",
   "main": "build/index.js",
   "type": "module",
   "bin": {
@@ -11,19 +11,31 @@
     "url": "git+https://github.com/Weaverse/mcp-server.git"
   },
   "scripts": {
-    "build": "tsc && chmod 755 build/index.js"
+    "build": "tsc && chmod 755 build/index.js",
+    "test": "node --import tsx --test test/*.test.ts",
+    "smoke": "npm run build && node test.js",
+    "prepublishOnly": "npm run build"
   },
-  "files": ["build"],
-  "keywords": ["weaverse", "mcp", "weaverse-mcp-server"],
+  "files": [
+    "build"
+  ],
+  "keywords": [
+    "weaverse",
+    "mcp",
+    "weaverse-mcp-server",
+    "shopify",
+    "hydrogen"
+  ],
   "author": "",
   "license": "ISC",
-  "description": "A command line tool for setting up Weaverse MCP server",
+  "description": "Weaverse MCP server: search Weaverse docs and work with your Weaverse account (projects, pages, theme settings, languages) over the Content API.",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.8.0",
-    "zod": "^3.24.2"
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
+    "tsx": "^4.19.3",
     "typescript": "^5.8.2"
   }
 }
